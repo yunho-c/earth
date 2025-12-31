@@ -1,5 +1,7 @@
 import {
 	ACESFilmicToneMapping,
+	AdditiveBlending,
+	BackSide,
 	Clock,
 	DirectionalLight,
 	Group,
@@ -7,6 +9,7 @@ import {
 	MeshBasicNodeMaterial,
 	MeshStandardNodeMaterial,
 	NoColorSpace,
+	PostProcessing,
 	PerspectiveCamera,
 	Scene,
 	SphereGeometry,
@@ -16,7 +19,23 @@ import {
 	WebGPURenderer
 } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { color, dot, float, mix, normalMap, normalWorld, smoothstep, texture, uniform } from 'three/tsl';
+import {
+	cameraPosition,
+	color,
+	dot,
+	float,
+	mix,
+	normalMap,
+	normalWorld,
+	normalize,
+	oneMinus,
+	pass,
+	positionWorld,
+	pow,
+	smoothstep,
+	texture,
+	uniform
+} from 'three/tsl';
 
 type StatusHandler = (message: string) => void;
 
@@ -104,9 +123,28 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const cloudMesh = new Mesh(cloudGeometry, cloudMaterial);
 	earthGroup.add(cloudMesh);
 
+	const atmosphereGeometry = new SphereGeometry(1.025, 64, 64);
+	const atmosphereMaterial = new MeshBasicNodeMaterial({
+		transparent: true,
+		blending: AdditiveBlending,
+		depthWrite: false,
+		side: BackSide
+	});
+	const viewDir = normalize(cameraPosition.sub(positionWorld));
+	const rim = oneMinus(dot(viewDir, normalWorld));
+	const rimPower = pow(rim, float(3.0));
+	atmosphereMaterial.colorNode = color(0x3a92ff).mul(rimPower);
+	atmosphereMaterial.opacityNode = rimPower;
+
+	const atmosphereMesh = new Mesh(atmosphereGeometry, atmosphereMaterial);
+	earthGroup.add(atmosphereMesh);
+
 	const sun = new DirectionalLight(0xffffff, 1.2);
 	sun.position.set(5, 3, 5);
 	scene.add(sun);
+
+	const postProcessing = new PostProcessing(renderer);
+	postProcessing.outputNode = pass(scene, camera);
 
 	const clock = new Clock();
 	let frameId = 0;
@@ -124,7 +162,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		cloudMesh.rotation.y += delta * 0.26;
 		sunDirection.value.copy(sun.position).normalize();
 		controls.update();
-		renderer.render(scene, camera);
+		postProcessing.render();
 		frameId = requestAnimationFrame(onFrame);
 	};
 
@@ -147,6 +185,8 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		clouds.dispose();
 		cloudGeometry.dispose();
 		cloudMaterial.dispose();
+		atmosphereGeometry.dispose();
+		atmosphereMaterial.dispose();
 		renderer.dispose();
 		container.removeChild(renderer.domElement);
 	};
