@@ -54,6 +54,21 @@ const placeholderSpecularUrl = makeTwoToneTextureDataUrl('#ffffff', '#000000');
 const placeholderNormalUrl = makeSolidTextureDataUrl('#8080ff');
 const placeholderLightsUrl = makeSolidTextureDataUrl('#f8c77c');
 const placeholderCloudsUrl = makeTwoToneTextureDataUrl('#ffffff', '#3a3a3a');
+const assetUrls = {
+	albedo: '/textures/earth_albedo.jpg',
+	specular: '/textures/earth_specular.jpg',
+	normal: '/textures/earth_normal.jpg',
+	lights: '/textures/earth_lights.jpg',
+	clouds: '/textures/earth_clouds.jpg'
+};
+
+const loadTexture = async (loader: TextureLoader, url: string, fallbackUrl: string) => {
+	try {
+		return await loader.loadAsync(url);
+	} catch {
+		return await loader.loadAsync(fallbackUrl);
+	}
+};
 
 export const initEarth = async (container: HTMLElement, setStatus: StatusHandler) => {
 	if (!('gpu' in navigator)) {
@@ -82,12 +97,13 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	controls.enablePan = false;
 
 	const loader = new TextureLoader();
+	setStatus('Loading textures...');
 	const [albedo, specular, normal, lights, clouds] = await Promise.all([
-		loader.loadAsync(placeholderAlbedoUrl),
-		loader.loadAsync(placeholderSpecularUrl),
-		loader.loadAsync(placeholderNormalUrl),
-		loader.loadAsync(placeholderLightsUrl),
-		loader.loadAsync(placeholderCloudsUrl)
+		loadTexture(loader, assetUrls.albedo, placeholderAlbedoUrl),
+		loadTexture(loader, assetUrls.specular, placeholderSpecularUrl),
+		loadTexture(loader, assetUrls.normal, placeholderNormalUrl),
+		loadTexture(loader, assetUrls.lights, placeholderLightsUrl),
+		loadTexture(loader, assetUrls.clouds, placeholderCloudsUrl)
 	]);
 	albedo.colorSpace = SRGBColorSpace;
 	specular.colorSpace = NoColorSpace;
