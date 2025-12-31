@@ -4,6 +4,7 @@ import {
 	DirectionalLight,
 	Group,
 	Mesh,
+	MeshBasicNodeMaterial,
 	MeshStandardNodeMaterial,
 	NoColorSpace,
 	PerspectiveCamera,
@@ -15,7 +16,7 @@ import {
 	WebGPURenderer
 } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { float, mix, normalMap, texture } from 'three/tsl';
+import { color, dot, float, mix, normalMap, normalWorld, smoothstep, texture, uniform } from 'three/tsl';
 
 type StatusHandler = (message: string) => void;
 
@@ -32,6 +33,8 @@ const makeTwoToneTextureDataUrl = (left: string, right: string) => {
 const placeholderAlbedoUrl = makeSolidTextureDataUrl('#1e5aa8');
 const placeholderSpecularUrl = makeTwoToneTextureDataUrl('#ffffff', '#000000');
 const placeholderNormalUrl = makeSolidTextureDataUrl('#8080ff');
+const placeholderLightsUrl = makeSolidTextureDataUrl('#f8c77c');
+const placeholderCloudsUrl = makeTwoToneTextureDataUrl('#ffffff', '#3a3a3a');
 
 export const initEarth = async (container: HTMLElement, setStatus: StatusHandler) => {
 	if (!('gpu' in navigator)) {
@@ -60,27 +63,46 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	controls.enablePan = false;
 
 	const loader = new TextureLoader();
-	const [albedo, specular, normal] = await Promise.all([
+	const [albedo, specular, normal, lights, clouds] = await Promise.all([
 		loader.loadAsync(placeholderAlbedoUrl),
 		loader.loadAsync(placeholderSpecularUrl),
-		loader.loadAsync(placeholderNormalUrl)
+		loader.loadAsync(placeholderNormalUrl),
+		loader.loadAsync(placeholderLightsUrl),
+		loader.loadAsync(placeholderCloudsUrl)
 	]);
 	albedo.colorSpace = SRGBColorSpace;
 	specular.colorSpace = NoColorSpace;
 	normal.colorSpace = NoColorSpace;
+	lights.colorSpace = SRGBColorSpace;
+	clouds.colorSpace = NoColorSpace;
 
 	const earthGroup = new Group();
 	scene.add(earthGroup);
 
 	const geometry = new SphereGeometry(1, 64, 64);
 	const material = new MeshStandardNodeMaterial();
-	material.colorNode = texture(albedo);
+	const sunDirection = uniform(new Vector3(1, 0, 0));
+	const dayColor = texture(albedo);
+	const nightColor = texture(lights);
+	const sunDot = dot(normalWorld, sunDirection);
+	const dayFactor = smoothstep(float(-0.1), float(0.1), sunDot);
+
+	material.colorNode = mix(nightColor, dayColor, dayFactor);
 	material.roughnessNode = mix(float(0.9), float(0.2), texture(specular).r);
 	material.normalNode = normalMap(texture(normal));
 	material.metalness = 0;
 
 	const earthMesh = new Mesh(geometry, material);
 	earthGroup.add(earthMesh);
+
+	const cloudGeometry = new SphereGeometry(1.01, 64, 64);
+	const cloudMaterial = new MeshBasicNodeMaterial({ transparent: true, depthWrite: false });
+	const cloudAlpha = texture(clouds).r;
+	cloudMaterial.colorNode = color(0xffffff);
+	cloudMaterial.opacityNode = cloudAlpha.mul(float(0.6));
+
+	const cloudMesh = new Mesh(cloudGeometry, cloudMaterial);
+	earthGroup.add(cloudMesh);
 
 	const sun = new DirectionalLight(0xffffff, 1.2);
 	sun.position.set(5, 3, 5);
@@ -99,6 +121,8 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const onFrame = () => {
 		const delta = clock.getDelta();
 		earthGroup.rotation.y += delta * 0.2;
+		cloudMesh.rotation.y += delta * 0.26;
+		sunDirection.value.copy(sun.position).normalize();
 		controls.update();
 		renderer.render(scene, camera);
 		frameId = requestAnimationFrame(onFrame);
@@ -119,6 +143,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		albedo.dispose();
 		specular.dispose();
 		normal.dispose();
+		lights.dispose();
+		clouds.dispose();
+		cloudGeometry.dispose();
+		cloudMaterial.dispose();
 		renderer.dispose();
 		container.removeChild(renderer.domElement);
 	};
