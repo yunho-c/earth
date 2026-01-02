@@ -1,5 +1,6 @@
 node_modules
 bun.lock
+static/textures
 
 # Output
 .output
