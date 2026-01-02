@@ -82,6 +82,9 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.toneMapping = ACESFilmicToneMapping;
 	renderer.outputColorSpace = SRGBColorSpace;
+	renderer.domElement.style.width = '100%';
+	renderer.domElement.style.height = '100%';
+	renderer.domElement.style.display = 'block';
 
 	container.appendChild(renderer.domElement);
 	await renderer.init();
