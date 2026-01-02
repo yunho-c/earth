@@ -9,3 +9,5 @@ Place NASA Visible Earth textures in this folder using these filenames:
 - `earth_clouds.jpg` (clouds mask)
 
 The app will fall back to inline placeholder textures when these files are missing.
+
+For Solar System Scope assets, run `scripts/fetch-textures.sh` and review their license terms.
