@@ -263,7 +263,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const vignette = oneMinus(smoothstep(float(0.35), float(0.8), length(uv().sub(vec2(0.5)))));
 	const graded = vec4(gammaCurve.mul(vignette), composite.a);
 	const filmGrain = film(graded, float(0.05));
-	const lensShift = rgbShift(filmGrain, 0.0016, 0.6);
+	const lensShift = rgbShift(filmGrain, 0.0008, 0.6);
 
 	postProcessing.outputNode = lensShift;
 
