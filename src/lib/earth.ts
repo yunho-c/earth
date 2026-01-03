@@ -56,6 +56,11 @@ import { film } from 'three/addons/tsl/display/FilmNode.js';
 
 type StatusHandler = (message: string) => void;
 
+export type EarthHandle = {
+	dispose: () => void;
+	setExposure: (value: number) => void;
+};
+
 const makeSolidTextureDataUrl = (hex: string) => {
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="${hex}"/></svg>`;
 	return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -89,10 +94,13 @@ const loadTexture = async (loader: TextureLoader, url: string, fallbackUrl: stri
 	}
 };
 
-export const initEarth = async (container: HTMLElement, setStatus: StatusHandler) => {
+export const initEarth = async (container: HTMLElement, setStatus: StatusHandler): Promise<EarthHandle> => {
 	if (!('gpu' in navigator)) {
 		setStatus('WebGPU is not available in this browser.');
-		return () => undefined;
+		return {
+			dispose: () => undefined,
+			setExposure: () => undefined
+		};
 	}
 
 	setStatus('Initializing WebGPU renderer...');
@@ -100,6 +108,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const renderer = new WebGPURenderer({ antialias: true, alpha: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.toneMapping = AgXToneMapping;
+	renderer.toneMappingExposure = 1.0;
 	renderer.outputColorSpace = SRGBColorSpace;
 	renderer.domElement.style.width = '100%';
 	renderer.domElement.style.height = '100%';
@@ -280,27 +289,32 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	setStatus('');
 	onFrame();
 
-	return () => {
-		cancelAnimationFrame(frameId);
-		resizeObserver.disconnect();
-		controls.dispose();
-		geometry.dispose();
-		material.dispose();
-		albedo.dispose();
-		specular.dispose();
-		normal.dispose();
-		lights.dispose();
-		clouds.dispose();
-		stars.dispose();
-		cloudGeometry.dispose();
-		cloudMaterial.dispose();
-		starGeometry.dispose();
-		starMaterial.dispose();
-		atmosphereInnerGeometry.dispose();
-		atmosphereInnerMaterial.dispose();
-		atmosphereOuterGeometry.dispose();
-		atmosphereOuterMaterial.dispose();
-		renderer.dispose();
-		container.removeChild(renderer.domElement);
+	return {
+		dispose: () => {
+			cancelAnimationFrame(frameId);
+			resizeObserver.disconnect();
+			controls.dispose();
+			geometry.dispose();
+			material.dispose();
+			albedo.dispose();
+			specular.dispose();
+			normal.dispose();
+			lights.dispose();
+			clouds.dispose();
+			stars.dispose();
+			cloudGeometry.dispose();
+			cloudMaterial.dispose();
+			starGeometry.dispose();
+			starMaterial.dispose();
+			atmosphereInnerGeometry.dispose();
+			atmosphereInnerMaterial.dispose();
+			atmosphereOuterGeometry.dispose();
+			atmosphereOuterMaterial.dispose();
+			renderer.dispose();
+			container.removeChild(renderer.domElement);
+		},
+		setExposure: (value: number) => {
+			renderer.toneMappingExposure = value;
+		}
 	};
 };

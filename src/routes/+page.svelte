@@ -1,27 +1,43 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { initEarth } from '$lib/earth';
+	import { Pane } from 'tweakpane';
+	import { initEarth, type EarthHandle } from '$lib/earth';
 
 	let container: HTMLDivElement;
+	let paneHost: HTMLDivElement;
 	let status = 'Preparing scene...';
 
 	onMount(() => {
-		let cleanup: (() => void) | undefined;
+		let earth: EarthHandle | null = null;
+		let pane: Pane | null = null;
 		let cancelled = false;
 
 		(async () => {
-			cleanup = await initEarth(container, (message) => {
+			earth = await initEarth(container, (message) => {
 				status = message;
 			});
 
-			if (cancelled && cleanup) {
-				cleanup();
+			if (cancelled) {
+				earth.dispose();
+				return;
 			}
+
+			pane = new Pane({
+				container: paneHost,
+				title: 'Render'
+			});
+
+			const params = { exposure: 1.0 };
+			pane.addBinding(params, 'exposure', { min: 0.6, max: 1.4, step: 0.01 });
+			pane.on('change', () => {
+				earth?.setExposure(params.exposure);
+			});
 		})();
 
 		return () => {
 			cancelled = true;
-			cleanup?.();
+			pane?.dispose();
+			earth?.dispose();
 		};
 	});
 </script>
@@ -31,6 +47,7 @@
 		{#if status}
 			<div class="status">{status}</div>
 		{/if}
+		<div class="pane" bind:this={paneHost}></div>
 	</div>
 </main>
 
@@ -64,4 +81,27 @@
 		padding: 1rem;
 		background: radial-gradient(circle at 50% 50%, rgba(5, 10, 22, 0.72), rgba(5, 10, 22, 0.9));
 	}
-	</style>
+
+	.pane {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		z-index: 2;
+	}
+
+	.pane :global(.tp-dfwv) {
+		min-width: 220px;
+		background: rgba(8, 12, 24, 0.75);
+		backdrop-filter: blur(10px);
+		border-radius: 12px;
+		border: 1px solid rgba(106, 140, 195, 0.4);
+	}
+
+	.pane :global(.tp-rotv_c) {
+		color: #d8e5ff;
+	}
+
+	.pane :global(.tp-lblv_l) {
+		color: #aeb8d4;
+	}
+</style>
