@@ -37,10 +37,15 @@ import {
 	positionWorld,
 	pow,
 	smoothstep,
+	saturate,
 	texture,
-	uniform
+	uniform,
+	vec3,
+	vec4,
+	luminance
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+import { rgbShift } from 'three/addons/tsl/display/RGBShiftNode.js';
 
 type StatusHandler = (message: string) => void;
 
@@ -209,8 +214,17 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const postProcessing = new PostProcessing(renderer);
 	const scenePass = pass(scene, camera);
 	const sceneColor = scenePass.getTextureNode('output');
-	const bloomPass = bloom(sceneColor, 0.6, 0.35, 0.85);
-	postProcessing.outputNode = sceneColor.add(bloomPass);
+	const bloomPass = bloom(sceneColor, 0.55, 0.25, 0.85);
+	const glarePass = bloom(sceneColor, 0.9, 0.6, 1.1).mul(vec4(0.65, 0.8, 1.05, 1.0));
+	const composite = sceneColor.add(bloomPass).add(glarePass);
+
+	const midtone = mix(vec3(0.5), composite.rgb, float(1.08));
+	const tinted = midtone.mul(vec3(0.98, 1.03, 1.06));
+	const gammaCurve = pow(saturate(tinted), vec3(0.97));
+	const graded = vec4(gammaCurve, composite.a);
+	const lensShift = rgbShift(graded, 0.0016, 0.6);
+
+	postProcessing.outputNode = lensShift;
 
 	const clock = new Clock();
 	let frameId = 0;
