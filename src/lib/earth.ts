@@ -154,7 +154,13 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 
 	const starGeometry = new SphereGeometry(60, 64, 64);
 	const starMaterial = new MeshBasicNodeMaterial({ side: BackSide, depthWrite: false });
-	starMaterial.colorNode = texture(stars);
+	const starTex = texture(stars);
+	const viewCenter = normalize(cameraPosition.mul(float(-1)));
+	const starDir = normalize(positionWorld);
+	const starAlign = dot(starDir, viewCenter);
+	const starFade = smoothstep(float(0.88), float(0.96), starAlign);
+	const starIntensity = mix(float(0.2), float(1.0), oneMinus(starFade));
+	starMaterial.colorNode = starTex.mul(starIntensity);
 	const starMesh = new Mesh(starGeometry, starMaterial);
 	scene.add(starMesh);
 
