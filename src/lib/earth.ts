@@ -38,14 +38,18 @@ import {
 	pow,
 	smoothstep,
 	saturate,
+	uv,
 	texture,
 	uniform,
+	vec2,
 	vec3,
 	vec4,
-	luminance
+	luminance,
+	length
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { rgbShift } from 'three/addons/tsl/display/RGBShiftNode.js';
+import { film } from 'three/addons/tsl/display/FilmNode.js';
 
 type StatusHandler = (message: string) => void;
 
@@ -176,9 +180,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const viewDir = normalize(cameraPosition.sub(positionWorld));
 	const ndotv = dot(normalWorld, viewDir);
 	const rim = oneMinus(abs(ndotv));
-	const rimSoft = smoothstep(float(0.0), float(0.85), rim);
-	const rimGlow = pow(rimSoft, float(2.6));
-	const horizonHaze = smoothstep(float(0.0), float(0.6), ndotv).mul(float(0.08));
+	const rimSoft = smoothstep(float(0.0), float(0.9), rim);
+	const rimBand = smoothstep(float(0.25), float(0.9), rim).mul(oneMinus(smoothstep(float(0.88), float(1.0), rim)));
+	const rimGlow = pow(rimSoft, float(2.2));
+	const horizonHaze = smoothstep(float(0.0), float(0.6), ndotv).mul(float(0.065));
 	const dayScatter = smoothstep(float(-0.2), float(0.6), sunDot);
 
 	const atmosphereInnerGeometry = new SphereGeometry(1.02, 64, 64);
@@ -188,8 +193,11 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		depthWrite: false,
 		side: FrontSide
 	});
-	const innerDensity = rimGlow.mul(float(0.28)).add(horizonHaze);
-	atmosphereInnerMaterial.colorNode = color(0x8cc9ff).mul(innerDensity);
+	const innerDensity = rimGlow.mul(float(0.25)).add(horizonHaze);
+	const innerRimTint = mix(color(0x2f6ac4), color(0xb6e1ff), rimSoft);
+	const innerDayTint = mix(color(0x1b3f8a), color(0x86c4ff), dayScatter);
+	const innerTint = mix(innerDayTint, innerRimTint, rimSoft);
+	atmosphereInnerMaterial.colorNode = innerTint.mul(innerDensity);
 	atmosphereInnerMaterial.opacityNode = innerDensity.mul(dayScatter);
 	const atmosphereInnerMesh = new Mesh(atmosphereInnerGeometry, atmosphereInnerMaterial);
 	earthGroup.add(atmosphereInnerMesh);
@@ -201,8 +209,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		depthWrite: false,
 		side: BackSide
 	});
-	const outerDensity = rimGlow.mul(float(0.42));
-	atmosphereOuterMaterial.colorNode = color(0x4f9bff).mul(outerDensity);
+	const outerGlow = pow(rimBand, float(1.7));
+	const outerDensity = outerGlow.mul(float(0.33));
+	const outerTint = mix(color(0x204a99), color(0x6fb3ff), rimBand);
+	atmosphereOuterMaterial.colorNode = outerTint.mul(outerDensity);
 	atmosphereOuterMaterial.opacityNode = outerDensity.mul(dayScatter);
 	const atmosphereOuterMesh = new Mesh(atmosphereOuterGeometry, atmosphereOuterMaterial);
 	earthGroup.add(atmosphereOuterMesh);
@@ -221,8 +231,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const midtone = mix(vec3(0.5), composite.rgb, float(1.08));
 	const tinted = midtone.mul(vec3(0.98, 1.03, 1.06));
 	const gammaCurve = pow(saturate(tinted), vec3(0.97));
-	const graded = vec4(gammaCurve, composite.a);
-	const lensShift = rgbShift(graded, 0.0016, 0.6);
+	const vignette = oneMinus(smoothstep(float(0.35), float(0.8), length(uv().sub(vec2(0.5)))));
+	const graded = vec4(gammaCurve.mul(vignette), composite.a);
+	const filmGrain = film(graded, float(0.05));
+	const lensShift = rgbShift(filmGrain, 0.0016, 0.6);
 
 	postProcessing.outputNode = lensShift;
 
