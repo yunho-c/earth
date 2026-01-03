@@ -175,8 +175,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const cloudShadowU = fract(uv().x.sub(cloudRotation.div(TWO_PI)));
 	const cloudShadowUv = vec2(cloudShadowU, uv().y);
 	const cloudShadowSample = texture(clouds).sample(cloudShadowUv).r;
-	const cloudShadowMask = smoothstep(float(0.3), float(0.75), cloudShadowSample);
-	const cloudShadowFactor = oneMinus(cloudShadowMask.mul(float(0.2)));
+	const cloudShadowBlur = texture(clouds).blur(float(0.8)).sample(cloudShadowUv).r;
+	const cloudShadowMix = mix(cloudShadowSample, cloudShadowBlur, float(0.6));
+	const cloudShadowMask = smoothstep(float(0.25), float(0.7), cloudShadowMix);
+	const cloudShadowFactor = oneMinus(cloudShadowMask.mul(float(0.22)));
 
 	const waterMask = texture(specular).r;
 	const waterNoise = triNoise3D(positionWorld.mul(96), float(0.0), float(0.0));
@@ -201,7 +203,13 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const cloudSample = texture(clouds).r;
 	const cloudDensity = pow(cloudSample, float(0.6));
 	const cloudMask = smoothstep(float(0.35), float(0.8), cloudDensity);
-	cloudMaterial.colorNode = color(0xf8fbff).mul(mix(float(0.6), float(1.1), cloudDensity));
+	const cloudLight = smoothstep(float(-0.15), float(0.35), dot(normalWorldGeometry, sunDirection));
+	const cloudSelfShadow = mix(float(0.55), float(1.0), cloudLight);
+	const cloudDensityShade = mix(float(1.0), float(0.7), cloudDensity);
+	cloudMaterial.colorNode = color(0xf8fbff)
+		.mul(mix(float(0.6), float(1.1), cloudDensity))
+		.mul(cloudSelfShadow)
+		.mul(cloudDensityShade);
 	cloudMaterial.opacityNode = cloudMask.mul(float(0.9));
 	cloudMaterial.thicknessNode = mix(float(0.06), float(0.28), cloudDensity);
 	cloudMaterial.transmission = 0.55;
