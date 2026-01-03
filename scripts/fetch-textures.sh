@@ -59,6 +59,10 @@ download \
 	"https://www.solarsystemscope.com/textures/download/8k_earth_clouds.jpg" \
 	"${out_dir}/earth_clouds.jpg"
 
+download \
+	"https://www.solarsystemscope.com/textures/download/8k_stars.jpg" \
+	"${out_dir}/stars.jpg"
+
 normal_tif="${tmp_dir}/earth_normal_map.tif"
 specular_tif="${tmp_dir}/earth_specular_map.tif"
 

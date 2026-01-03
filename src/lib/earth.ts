@@ -55,12 +55,14 @@ const placeholderSpecularUrl = makeTwoToneTextureDataUrl('#ffffff', '#000000');
 const placeholderNormalUrl = makeSolidTextureDataUrl('#8080ff');
 const placeholderLightsUrl = makeSolidTextureDataUrl('#f8c77c');
 const placeholderCloudsUrl = makeTwoToneTextureDataUrl('#ffffff', '#3a3a3a');
+const placeholderStarsUrl = makeSolidTextureDataUrl('#05070d');
 const assetUrls = {
 	albedo: '/textures/earth_albedo.jpg',
 	specular: '/textures/earth_specular.jpg',
 	normal: '/textures/earth_normal.jpg',
 	lights: '/textures/earth_lights.jpg',
-	clouds: '/textures/earth_clouds.jpg'
+	clouds: '/textures/earth_clouds.jpg',
+	stars: '/textures/stars.jpg'
 };
 
 const loadTexture = async (loader: TextureLoader, url: string, fallbackUrl: string) => {
@@ -102,21 +104,29 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 
 	const loader = new TextureLoader();
 	setStatus('Loading textures...');
-	const [albedo, specular, normal, lights, clouds] = await Promise.all([
+	const [albedo, specular, normal, lights, clouds, stars] = await Promise.all([
 		loadTexture(loader, assetUrls.albedo, placeholderAlbedoUrl),
 		loadTexture(loader, assetUrls.specular, placeholderSpecularUrl),
 		loadTexture(loader, assetUrls.normal, placeholderNormalUrl),
 		loadTexture(loader, assetUrls.lights, placeholderLightsUrl),
-		loadTexture(loader, assetUrls.clouds, placeholderCloudsUrl)
+		loadTexture(loader, assetUrls.clouds, placeholderCloudsUrl),
+		loadTexture(loader, assetUrls.stars, placeholderStarsUrl)
 	]);
 	albedo.colorSpace = SRGBColorSpace;
 	specular.colorSpace = NoColorSpace;
 	normal.colorSpace = NoColorSpace;
 	lights.colorSpace = SRGBColorSpace;
 	clouds.colorSpace = NoColorSpace;
+	stars.colorSpace = SRGBColorSpace;
 
 	const earthGroup = new Group();
 	scene.add(earthGroup);
+
+	const starGeometry = new SphereGeometry(60, 64, 64);
+	const starMaterial = new MeshBasicNodeMaterial({ side: BackSide, depthWrite: false });
+	starMaterial.colorNode = texture(stars);
+	const starMesh = new Mesh(starGeometry, starMaterial);
+	scene.add(starMesh);
 
 	const geometry = new SphereGeometry(1, 64, 64);
 	const material = new MeshStandardNodeMaterial();
@@ -214,8 +224,11 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		normal.dispose();
 		lights.dispose();
 		clouds.dispose();
+		stars.dispose();
 		cloudGeometry.dispose();
 		cloudMaterial.dispose();
+		starGeometry.dispose();
+		starMaterial.dispose();
 		atmosphereGeometry.dispose();
 		atmosphereMaterial.dispose();
 		renderer.dispose();

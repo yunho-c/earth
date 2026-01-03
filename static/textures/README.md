@@ -7,6 +7,7 @@ Place NASA Visible Earth textures in this folder using these filenames:
 - `earth_normal.jpg` (normal or converted bump)
 - `earth_lights.jpg` (night lights)
 - `earth_clouds.jpg` (clouds mask)
+- `stars.jpg` (starfield background)
 
 The app will fall back to inline placeholder textures when these files are missing.
 
