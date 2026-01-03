@@ -37,6 +37,7 @@ import {
 	texture,
 	uniform
 } from 'three/tsl';
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 
 type StatusHandler = (message: string) => void;
 
@@ -185,7 +186,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	scene.add(sun);
 
 	const postProcessing = new PostProcessing(renderer);
-	postProcessing.outputNode = pass(scene, camera);
+	const scenePass = pass(scene, camera);
+	const sceneColor = scenePass.getTextureNode('output');
+	const bloomPass = bloom(sceneColor, 0.6, 0.35, 0.85);
+	postProcessing.outputNode = sceneColor.add(bloomPass);
 
 	const clock = new Clock();
 	let frameId = 0;
