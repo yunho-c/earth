@@ -125,8 +125,11 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const nightColor = texture(lights);
 	const sunDot = dot(normalWorld, sunDirection);
 	const dayFactor = smoothstep(float(-0.1), float(0.1), sunDot);
+	const nightFactor = oneMinus(dayFactor);
 
-	material.colorNode = mix(nightColor, dayColor, dayFactor);
+	material.colorNode = dayColor.mul(dayFactor);
+	material.emissiveNode = nightColor.mul(nightFactor);
+	material.emissiveIntensity = 1.2;
 	material.roughnessNode = mix(float(0.9), float(0.2), texture(specular).r);
 	material.normalNode = normalMap(texture(normal));
 	material.metalness = 0;
