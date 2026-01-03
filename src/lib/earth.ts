@@ -1,6 +1,6 @@
 import {
-	ACESFilmicToneMapping,
 	AdditiveBlending,
+	AgXToneMapping,
 	BackSide,
 	Clock,
 	DirectionalLight,
@@ -99,7 +99,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 
 	const renderer = new WebGPURenderer({ antialias: true, alpha: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
-	renderer.toneMapping = ACESFilmicToneMapping;
+	renderer.toneMapping = AgXToneMapping;
 	renderer.outputColorSpace = SRGBColorSpace;
 	renderer.domElement.style.width = '100%';
 	renderer.domElement.style.height = '100%';
