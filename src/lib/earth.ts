@@ -59,6 +59,7 @@ type StatusHandler = (message: string) => void;
 export type EarthHandle = {
 	dispose: () => void;
 	setExposure: (value: number) => void;
+	setRotationMultiplier: (value: number) => void;
 };
 
 const makeSolidTextureDataUrl = (hex: string) => {
@@ -155,6 +156,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 
 	const geometry = new SphereGeometry(1, 64, 64);
 	const material = new MeshStandardNodeMaterial();
+	const earthDaySeconds = 86400;
+	const earthRadiansPerSecond = (Math.PI * 2) / earthDaySeconds;
+	let rotationMultiplier = 1000;
+	let rotationSpeed = earthRadiansPerSecond * rotationMultiplier;
 	const sunDirection = uniform(new Vector3(1, 0, 0));
 	const cloudRotation = uniform(0);
 	const dayColor = texture(albedo);
@@ -274,8 +279,8 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 
 	const onFrame = () => {
 		const delta = clock.getDelta();
-		earthGroup.rotation.y += delta * 0.2;
-		cloudMesh.rotation.y += delta * 0.26;
+		earthGroup.rotation.y += delta * rotationSpeed;
+		cloudMesh.rotation.y += delta * rotationSpeed * 1.3;
 		cloudRotation.value = cloudMesh.rotation.y;
 		sunDirection.value.copy(sun.position).normalize();
 		controls.update();
@@ -315,6 +320,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		},
 		setExposure: (value: number) => {
 			renderer.toneMappingExposure = value;
+		},
+		setRotationMultiplier: (value: number) => {
+			rotationMultiplier = value;
+			rotationSpeed = earthRadiansPerSecond * rotationMultiplier;
 		}
 	};
 };

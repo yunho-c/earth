@@ -27,10 +27,20 @@
 				title: 'Render'
 			});
 
-			const params = { exposure: 1.0 };
-			pane.addBinding(params, 'exposure', { min: 0.6, max: 1.4, step: 0.01 });
-			pane.on('change', () => {
-				earth?.setExposure(params.exposure);
+			const params = { exposure: 1.0, rotation: 1000 };
+			const exposureBinding = pane.addBinding(params, 'exposure', { min: 0.6, max: 1.4, step: 0.01 });
+			const rotationBinding = pane.addBinding(params, 'rotation', {
+				min: 100,
+				max: 100000,
+				step: 100,
+				label: 'Rotation (x)'
+			});
+
+			exposureBinding.on('change', (event) => {
+				earth?.setExposure(event.value);
+			});
+			rotationBinding.on('change', (event) => {
+				earth?.setRotationMultiplier(event.value);
 			});
 		})();
 
