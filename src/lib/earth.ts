@@ -7,6 +7,7 @@ import {
 	Group,
 	Mesh,
 	MeshBasicNodeMaterial,
+	MeshPhysicalNodeMaterial,
 	MeshStandardNodeMaterial,
 	NoColorSpace,
 	PostProcessing,
@@ -133,11 +134,19 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const earthMesh = new Mesh(geometry, material);
 	earthGroup.add(earthMesh);
 
-	const cloudGeometry = new SphereGeometry(1.01, 64, 64);
-	const cloudMaterial = new MeshBasicNodeMaterial({ transparent: true, depthWrite: false });
-	const cloudAlpha = texture(clouds).r;
-	cloudMaterial.colorNode = color(0xffffff);
-	cloudMaterial.opacityNode = cloudAlpha.mul(float(0.6));
+	const cloudGeometry = new SphereGeometry(1.01, 96, 96);
+	const cloudMaterial = new MeshPhysicalNodeMaterial({ transparent: true, depthWrite: false });
+	const cloudSample = texture(clouds).r;
+	const cloudDensity = pow(cloudSample, float(0.6));
+	const cloudMask = smoothstep(float(0.35), float(0.8), cloudDensity);
+	cloudMaterial.colorNode = color(0xf8fbff).mul(mix(float(0.6), float(1.1), cloudDensity));
+	cloudMaterial.opacityNode = cloudMask.mul(float(0.9));
+	cloudMaterial.thicknessNode = mix(float(0.06), float(0.28), cloudDensity);
+	cloudMaterial.transmission = 0.55;
+	cloudMaterial.roughness = 0.9;
+	cloudMaterial.metalness = 0;
+	cloudMaterial.displacementMap = clouds;
+	cloudMaterial.displacementScale = 0.015;
 
 	const cloudMesh = new Mesh(cloudGeometry, cloudMaterial);
 	earthGroup.add(cloudMesh);
