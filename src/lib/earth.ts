@@ -47,7 +47,8 @@ import {
 	vec4,
 	luminance,
 	length,
-	fract
+	fract,
+	triNoise3D
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { rgbShift } from 'three/addons/tsl/display/RGBShiftNode.js';
@@ -157,12 +158,17 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const cloudShadowUv = vec2(cloudShadowU, uv().y);
 	const cloudShadowSample = texture(clouds).sample(cloudShadowUv).r;
 	const cloudShadowMask = smoothstep(float(0.3), float(0.75), cloudShadowSample);
-	const cloudShadowFactor = oneMinus(cloudShadowMask.mul(float(0.25)));
+	const cloudShadowFactor = oneMinus(cloudShadowMask.mul(float(0.2)));
+
+	const waterMask = texture(specular).r;
+	const waterNoise = triNoise3D(positionWorld.mul(96), float(0.0), float(0.0));
+	const waterVariation = saturate(waterNoise.mul(float(0.35)).add(float(0.25)));
+	const oceanRoughness = mix(float(0.32), float(0.48), waterVariation);
 
 	material.colorNode = dayColor.mul(cloudShadowFactor).mul(dayFactor);
 	material.emissiveNode = nightColor.mul(nightFactor);
 	material.emissiveIntensity = 1.2;
-	material.roughnessNode = mix(float(0.9), float(0.2), texture(specular).r);
+	material.roughnessNode = mix(float(0.9), oceanRoughness, waterMask);
 	material.normalNode = normalMap(texture(normal));
 	material.metalness = 0;
 
