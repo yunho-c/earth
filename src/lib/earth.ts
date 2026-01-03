@@ -125,7 +125,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const controls = new OrbitControls(camera, renderer.domElement);
 	controls.enableDamping = true;
 	controls.autoRotate = true;
-	controls.autoRotateSpeed = 0.4;
+	controls.autoRotateSpeed = 0.1;
 	controls.enablePan = false;
 
 	const loader = new TextureLoader();
@@ -158,7 +158,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const material = new MeshStandardNodeMaterial();
 	const earthDaySeconds = 86400;
 	const earthRadiansPerSecond = (Math.PI * 2) / earthDaySeconds;
-	let rotationMultiplier = 1000;
+	let rotationMultiplier = 250;
 	let rotationSpeed = earthRadiansPerSecond * rotationMultiplier;
 	const sunDirection = uniform(new Vector3(1, 0, 0));
 	const cloudRotation = uniform(0);
