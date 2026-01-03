@@ -40,12 +40,14 @@ import {
 	saturate,
 	uv,
 	texture,
+	TWO_PI,
 	uniform,
 	vec2,
 	vec3,
 	vec4,
 	luminance,
-	length
+	length,
+	fract
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { rgbShift } from 'three/addons/tsl/display/RGBShiftNode.js';
@@ -144,13 +146,20 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const geometry = new SphereGeometry(1, 64, 64);
 	const material = new MeshStandardNodeMaterial();
 	const sunDirection = uniform(new Vector3(1, 0, 0));
+	const cloudRotation = uniform(0);
 	const dayColor = texture(albedo);
 	const nightColor = texture(lights);
 	const sunDot = dot(normalWorldGeometry, sunDirection);
 	const dayFactor = smoothstep(float(-0.1), float(0.1), sunDot);
 	const nightFactor = oneMinus(dayFactor);
 
-	material.colorNode = dayColor.mul(dayFactor);
+	const cloudShadowU = fract(uv().x.sub(cloudRotation.div(TWO_PI)));
+	const cloudShadowUv = vec2(cloudShadowU, uv().y);
+	const cloudShadowSample = texture(clouds).sample(cloudShadowUv).r;
+	const cloudShadowMask = smoothstep(float(0.3), float(0.75), cloudShadowSample);
+	const cloudShadowFactor = oneMinus(cloudShadowMask.mul(float(0.25)));
+
+	material.colorNode = dayColor.mul(cloudShadowFactor).mul(dayFactor);
 	material.emissiveNode = nightColor.mul(nightFactor);
 	material.emissiveIntensity = 1.2;
 	material.roughnessNode = mix(float(0.9), float(0.2), texture(specular).r);
@@ -252,6 +261,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		const delta = clock.getDelta();
 		earthGroup.rotation.y += delta * 0.2;
 		cloudMesh.rotation.y += delta * 0.26;
+		cloudRotation.value = cloudMesh.rotation.y;
 		sunDirection.value.copy(sun.position).normalize();
 		controls.update();
 		postProcessing.render();
