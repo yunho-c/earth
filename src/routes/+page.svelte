@@ -44,8 +44,8 @@
 
 	.scene {
 		position: relative;
-		width: min(92vw, 1100px);
-		aspect-ratio: 16 / 9;
+		width: min(96vw, 1400px);
+		height: min(80vh, 900px);
 		border-radius: 24px;
 		overflow: hidden;
 		box-shadow: 0 30px 80px rgba(5, 8, 20, 0.6);
