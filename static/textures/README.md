@@ -5,6 +5,7 @@ Place NASA Visible Earth textures in this folder using these filenames:
 - `earth_albedo.jpg` (day color)
 - `earth_specular.jpg` (water mask, white = ocean)
 - `earth_normal.jpg` (normal or converted bump)
+- `earth_height.jpg` (height/bump map, mid-gray = neutral)
 - `earth_lights.jpg` (night lights)
 - `earth_clouds.jpg` (clouds mask)
 - `stars.jpg` (starfield background)

@@ -75,6 +75,7 @@ const makeTwoToneTextureDataUrl = (left: string, right: string) => {
 const placeholderAlbedoUrl = makeSolidTextureDataUrl('#1e5aa8');
 const placeholderSpecularUrl = makeTwoToneTextureDataUrl('#ffffff', '#000000');
 const placeholderNormalUrl = makeSolidTextureDataUrl('#8080ff');
+const placeholderHeightUrl = makeSolidTextureDataUrl('#808080');
 const placeholderLightsUrl = makeSolidTextureDataUrl('#f8c77c');
 const placeholderCloudsUrl = makeTwoToneTextureDataUrl('#ffffff', '#3a3a3a');
 const placeholderStarsUrl = makeSolidTextureDataUrl('#05070d');
@@ -82,6 +83,7 @@ const assetUrls = {
 	albedo: '/textures/earth_albedo.jpg',
 	specular: '/textures/earth_specular.jpg',
 	normal: '/textures/earth_normal.jpg',
+	height: '/textures/earth_height.jpg',
 	lights: '/textures/earth_lights.jpg',
 	clouds: '/textures/earth_clouds.jpg',
 	stars: '/textures/stars.jpg'
@@ -130,10 +132,11 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 
 	const loader = new TextureLoader();
 	setStatus('Loading textures...');
-	const [albedo, specular, normal, lights, clouds, stars] = await Promise.all([
+	const [albedo, specular, normal, height, lights, clouds, stars] = await Promise.all([
 		loadTexture(loader, assetUrls.albedo, placeholderAlbedoUrl),
 		loadTexture(loader, assetUrls.specular, placeholderSpecularUrl),
 		loadTexture(loader, assetUrls.normal, placeholderNormalUrl),
+		loadTexture(loader, assetUrls.height, placeholderHeightUrl),
 		loadTexture(loader, assetUrls.lights, placeholderLightsUrl),
 		loadTexture(loader, assetUrls.clouds, placeholderCloudsUrl),
 		loadTexture(loader, assetUrls.stars, placeholderStarsUrl)
@@ -141,6 +144,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	albedo.colorSpace = SRGBColorSpace;
 	specular.colorSpace = NoColorSpace;
 	normal.colorSpace = NoColorSpace;
+	height.colorSpace = NoColorSpace;
 	lights.colorSpace = SRGBColorSpace;
 	clouds.colorSpace = NoColorSpace;
 	stars.colorSpace = SRGBColorSpace;
@@ -154,7 +158,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const starMesh = new Mesh(starGeometry, starMaterial);
 	scene.add(starMesh);
 
-	const geometry = new SphereGeometry(1, 64, 64);
+	const geometry = new SphereGeometry(1, 128, 128);
 	const material = new MeshStandardNodeMaterial();
 	const earthDaySeconds = 86400;
 	const earthRadiansPerSecond = (Math.PI * 2) / earthDaySeconds;
@@ -184,6 +188,9 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	material.emissiveIntensity = 1.2;
 	material.roughnessNode = mix(float(0.9), oceanRoughness, waterMask);
 	material.normalNode = normalMap(texture(normal));
+	material.displacementMap = height;
+	material.displacementScale = 0.01;
+	material.displacementBias = -0.005;
 	material.metalness = 0;
 
 	const earthMesh = new Mesh(geometry, material);
@@ -304,6 +311,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 			albedo.dispose();
 			specular.dispose();
 			normal.dispose();
+			height.dispose();
 			lights.dispose();
 			clouds.dispose();
 			stars.dispose();
