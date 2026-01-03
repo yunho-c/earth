@@ -4,6 +4,7 @@ import {
 	BackSide,
 	Clock,
 	DirectionalLight,
+	FrontSide,
 	Group,
 	Mesh,
 	MeshBasicNodeMaterial,
@@ -21,6 +22,7 @@ import {
 } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
+	abs,
 	cameraPosition,
 	color,
 	dot,
@@ -28,6 +30,7 @@ import {
 	mix,
 	normalMap,
 	normalWorld,
+	normalWorldGeometry,
 	normalize,
 	oneMinus,
 	pass,
@@ -134,7 +137,7 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const sunDirection = uniform(new Vector3(1, 0, 0));
 	const dayColor = texture(albedo);
 	const nightColor = texture(lights);
-	const sunDot = dot(normalWorld, sunDirection);
+	const sunDot = dot(normalWorldGeometry, sunDirection);
 	const dayFactor = smoothstep(float(-0.1), float(0.1), sunDot);
 	const nightFactor = oneMinus(dayFactor);
 
@@ -165,21 +168,39 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 	const cloudMesh = new Mesh(cloudGeometry, cloudMaterial);
 	earthGroup.add(cloudMesh);
 
-	const atmosphereGeometry = new SphereGeometry(1.025, 64, 64);
-	const atmosphereMaterial = new MeshBasicNodeMaterial({
+	const viewDir = normalize(cameraPosition.sub(positionWorld));
+	const ndotv = dot(normalWorld, viewDir);
+	const rim = oneMinus(abs(ndotv));
+	const rimSoft = smoothstep(float(0.0), float(0.85), rim);
+	const rimGlow = pow(rimSoft, float(2.6));
+	const horizonHaze = smoothstep(float(0.0), float(0.6), ndotv).mul(float(0.08));
+	const dayScatter = smoothstep(float(-0.2), float(0.6), sunDot);
+
+	const atmosphereInnerGeometry = new SphereGeometry(1.02, 64, 64);
+	const atmosphereInnerMaterial = new MeshBasicNodeMaterial({
+		transparent: true,
+		blending: AdditiveBlending,
+		depthWrite: false,
+		side: FrontSide
+	});
+	const innerDensity = rimGlow.mul(float(0.28)).add(horizonHaze);
+	atmosphereInnerMaterial.colorNode = color(0x8cc9ff).mul(innerDensity);
+	atmosphereInnerMaterial.opacityNode = innerDensity.mul(dayScatter);
+	const atmosphereInnerMesh = new Mesh(atmosphereInnerGeometry, atmosphereInnerMaterial);
+	earthGroup.add(atmosphereInnerMesh);
+
+	const atmosphereOuterGeometry = new SphereGeometry(1.045, 64, 64);
+	const atmosphereOuterMaterial = new MeshBasicNodeMaterial({
 		transparent: true,
 		blending: AdditiveBlending,
 		depthWrite: false,
 		side: BackSide
 	});
-	const viewDir = normalize(cameraPosition.sub(positionWorld));
-	const rim = oneMinus(dot(viewDir, normalWorld));
-	const rimPower = pow(rim, float(3.0));
-	atmosphereMaterial.colorNode = color(0x3a92ff).mul(rimPower);
-	atmosphereMaterial.opacityNode = rimPower;
-
-	const atmosphereMesh = new Mesh(atmosphereGeometry, atmosphereMaterial);
-	earthGroup.add(atmosphereMesh);
+	const outerDensity = rimGlow.mul(float(0.42));
+	atmosphereOuterMaterial.colorNode = color(0x4f9bff).mul(outerDensity);
+	atmosphereOuterMaterial.opacityNode = outerDensity.mul(dayScatter);
+	const atmosphereOuterMesh = new Mesh(atmosphereOuterGeometry, atmosphereOuterMaterial);
+	earthGroup.add(atmosphereOuterMesh);
 
 	const sun = new DirectionalLight(0xffffff, 1.2);
 	sun.position.set(5, 3, 5);
@@ -233,8 +254,10 @@ export const initEarth = async (container: HTMLElement, setStatus: StatusHandler
 		cloudMaterial.dispose();
 		starGeometry.dispose();
 		starMaterial.dispose();
-		atmosphereGeometry.dispose();
-		atmosphereMaterial.dispose();
+		atmosphereInnerGeometry.dispose();
+		atmosphereInnerMaterial.dispose();
+		atmosphereOuterGeometry.dispose();
+		atmosphereOuterMaterial.dispose();
 		renderer.dispose();
 		container.removeChild(renderer.domElement);
 	};
